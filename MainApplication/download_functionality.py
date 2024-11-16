@@ -1,5 +1,5 @@
 import yt_dlp
-from PyQt6.QtCore import pyqtSignal, QRunnable, QObject
+from PyQt6.QtCore import QDir, QThread, pyqtSignal, QRunnable, QObject
 from imageio.plugins.ffmpeg import download
 from Settings import JSON_file_methods as jsn
 """Error log: Doesn't download mp3 version of the same video. So if video version exists, video is not downloaded
@@ -17,6 +17,7 @@ class VideoDownloader(QObject):
         self.media_format = media_format
         self.download_path = ""
         self.get_download_path()
+        self.remove_after_second_equals()
 
     def run(self):
         print("The file path is", self.download_path)
@@ -61,6 +62,16 @@ class VideoDownloader(QObject):
                 return video_title
         except Exception as e:
             return f"Error: {e}"
+
+    def remove_after_second_equals(self):
+        # Split the string by '='
+        parts = self.download_link.split('=')
+
+        # If there are at least two parts, join the first two parts back together with '='
+        if len(parts) > 2:
+            self.download_link = '='.join(parts[:2])
+        else:
+            print("The new url is", self.download_link)
 
     def get_download_path(self):
         self.download_path = jsn.read_json_file_path()
