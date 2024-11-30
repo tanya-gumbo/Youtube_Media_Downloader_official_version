@@ -1,13 +1,13 @@
 from PyQt6.QtCore import QThreadPool
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QLabel, QVBoxLayout, QCheckBox, QButtonGroup, QPushButton, \
-    QListWidgetItem, QProgressBar, QListWidget
-from imageio.plugins.ffmpeg import download
+    QListWidgetItem, QProgressBar, QListWidget, QMessageBox
 from MainApplication.download_functionality import VideoDownloader, DownloadTask
 
 
 class MainLayout(QWidget):
     def __init__(self):
         super().__init__()
+        self.download_status = None
         self.youtube_link_entry = QLineEdit()
         self.link_label = QLabel("Link Entry")
         self.download_button = QPushButton("Download")
@@ -19,6 +19,7 @@ class MainLayout(QWidget):
         self.checkbox_buttons_box = QHBoxLayout()
         self.status_menu = QListWidget()
         self.thread_pool = QThreadPool()
+        self.active_workers = {}
         self.define_ui()
 
     def define_ui(self):
@@ -78,12 +79,20 @@ class MainLayout(QWidget):
             title = download_thread.get_video_title()
             status_menu_items.set_video_title(title)
             download_thread.progress_updated.connect(status_menu_items.update_progress_bar)
+            download_thread.error_occured.connect(status_menu_items.error_occured)
             download_thread.download_finished.connect(status_menu_items.update_status_label)
             download_task = DownloadTask(download_thread)
             self.thread_pool.start(download_task)
         except Exception as e:
             print(e)
 
+    def is_thread_running(self):
+        """Checks if there are any active downloads taking place"""
+        active_threads = self.thread_pool.activeThreadCount()
+        if active_threads > 0:
+            return True
+        elif active_threads == 0:
+            return False
 
 class CustomStatusMenuItems(QWidget):
     def __init__(self):
@@ -92,7 +101,6 @@ class CustomStatusMenuItems(QWidget):
         self.status_label = QLabel()
         self.status_label.setText("Waiting for download to start...")
         self.video_title = QLabel()
-
         self.custom_layout = QVBoxLayout()
         self.custom_layout.setSpacing(0)
         self.custom_layout.addWidget(self.video_title)
@@ -107,7 +115,13 @@ class CustomStatusMenuItems(QWidget):
             self.update_status_label("Downloading")
 
     def update_status_label(self, text):
+        """Updates the status label once download is finished"""
         self.status_label.setText(text)
 
     def set_video_title(self, title):
+        """Sets the video name of the video/audio being downloaded"""
         self.video_title.setText(title)
+
+    def error_occured(self, error_message):
+        """Sets the downstatus of the video to the error"""
+        self.status_label.setText(error_message)
