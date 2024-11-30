@@ -1,4 +1,6 @@
 import os
+import sys
+
 import Settings.JSON_file_methods as jsn
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
@@ -16,9 +18,16 @@ class SideBar(QWidget):
         # Set spacing between buttons to 0
         self.side_menu_layout.setSpacing(0)
 
+        if hasattr(sys, "_MEIPASS"):
+            settings_icon_path = os.path.join(sys._MEIPASS, "Settings", "images", "settings_icon.png")
+            file_explorer_icon_path = os.path.join(sys._MEIPASS, "Settings", "images", "file_explorer_icon.png")
+        else:
+            settings_icon_path = os.path.join("Settings", "images", "settings_icon.png")
+            file_explorer_icon_path = os.path.join("Settings", "images", "file_explorer_icon.png")
+
         self.settings_button = QPushButton()
         self.settings_button.clicked.connect(self.settings_button_clicked)
-        self.settings_button.setIcon(QIcon("Settings/images/settings_icon.png"))
+        self.settings_button.setIcon(QIcon(settings_icon_path))
         self.settings_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.settings_button.setStyleSheet("background-color: transparent;border: none; padding: 0px;")
         self.settings_button.setIconSize(QSize(32, 19))  # Set the size of the icon
@@ -29,7 +38,7 @@ class SideBar(QWidget):
         file_expl_tool_tip_text = "Opens folder which contains downloads"
         self.file_explorer_button.setToolTip(file_expl_tool_tip_text)
         self.file_explorer_button.clicked.connect(self.file_explorer_button_clicked)
-        self.file_explorer_button.setIcon(QIcon("Settings/images/file_explorer_icon.png"))
+        self.file_explorer_button.setIcon(QIcon(file_explorer_icon_path))
         self.file_explorer_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.file_explorer_button.setStyleSheet(
             "background-color: transparent; border: none; padding: 0px;"
