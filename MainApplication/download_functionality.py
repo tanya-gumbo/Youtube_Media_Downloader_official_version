@@ -1,15 +1,15 @@
 import yt_dlp
 from PyQt6.QtCore import QDir, QThread, pyqtSignal, QRunnable, QObject
-from imageio.plugins.ffmpeg import download
 from Settings import JSON_file_methods as jsn
-"""Error log: Doesn't download mp3 version of the same video. So if video version exists, video is not downloaded
-We need to add functionality that handles errors better 
-"""
+import traceback
+import re
+from yt_dlp.utils import ExtractorError, DownloadError
 
 
 class VideoDownloader(QObject):
     progress_updated = pyqtSignal(int)
     download_finished = pyqtSignal(str)
+    error_occured = pyqtSignal(str)
 
     def __init__(self, link, media_format):
         super().__init__()
@@ -21,6 +21,8 @@ class VideoDownloader(QObject):
 
     def run(self):
         print("The file path is", self.download_path)
+        print("The download link is", self.download_link)
+        print("The media format is", self.media_format)
 
         base_config = {
             'outtmpl': f'{self.download_path}/%(title)s.%(ext)s',
@@ -43,15 +45,20 @@ class VideoDownloader(QObject):
             try:
                 ydl.download([self.download_link])
                 self.download_finished.emit("Downloaded Successfully")
-            except Exception as e:
-                print(f"An error occurred: {e}")
+            except yt_dlp.utils.DownloadError:
+                self.error_occured.emit("Network error, move to a stable network")
+            except yt_dlp.utils.ExtractorError:
+                self.error_occured.emit("Extraction error, try again")
 
     def download_progress_hook(self, d):
+        # print("First entrance into method, the status is", d['status'])
         if d['status'] == 'downloading':
             try:
-                percent = int(float(d['_percent_str'].strip('%')))
-                self.progress_updated.emit(percent)
-            except (ValueError, KeyError):
+                clean_percent_str = re.sub(r'\x1b\[[0-9;]*m', '', d['_percent_str']).strip('%')
+                float_percent = float(clean_percent_str)
+                int_percent = int(float_percent)
+                self.progress_updated.emit(int_percent)
+            except Exception:
                 pass
 
     def get_video_title(self):
@@ -61,7 +68,8 @@ class VideoDownloader(QObject):
                 video_title = info.get('title', 'Unknown')
                 return video_title
         except Exception as e:
-            return f"Error: {e}"
+            error_message = "Invalid URL"
+            self.error_occured.emit(error_message)
 
     def remove_after_second_equals(self):
         # Split the string by '='
